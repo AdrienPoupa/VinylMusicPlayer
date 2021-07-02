@@ -41,8 +41,6 @@ import java.util.function.Predicate;
  */
 
 public class Discography implements MusicServiceEventListener {
-    // TODO wrap this inside the MemCache class
-    private final DB database;
     private final MemCache cache;
 
     private MainActivity mainActivity = null;
@@ -51,10 +49,9 @@ public class Discography implements MusicServiceEventListener {
     private final Collection<Runnable> changedListeners = new LinkedList<>();
 
     public Discography() {
-        database = new DB();
         cache = new MemCache();
 
-        fetchAllSongs();
+        loadSongs();
     }
 
     // TODO This is not a singleton and should not be declared as such
@@ -257,11 +254,7 @@ public class Discography implements MusicServiceEventListener {
                 }
             } catch (NumberFormatException ignored) {}
 
-            cache.addSong(song);
-
-            if (!cacheOnly) {
-                database.addSong(song);
-            }
+            cache.addSong(song, cacheOnly);
 
             notifyDiscographyChanged();
         }
@@ -401,20 +394,18 @@ public class Discography implements MusicServiceEventListener {
 
         for (long songId : songIds) {
             cache.removeSongById(songId);
-            database.removeSongById(songId);
         }
         notifyDiscographyChanged();
     }
 
     void clear() {
-        database.clear();
         cache.clear();
     }
 
-    private void fetchAllSongs() {
+    private void loadSongs() {
         setStale(true);
 
-        Collection<Song> songs = database.fetchAllSongs();
+        Collection<Song> songs = cache.loadSongs();
         for (Song song : songs) {
             addSong(song, true);
         }
