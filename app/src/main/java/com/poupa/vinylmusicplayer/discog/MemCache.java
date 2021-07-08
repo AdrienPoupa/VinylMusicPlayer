@@ -161,6 +161,8 @@ class MemCache {
         genresByName.clear();
         songsByGenreId.clear();
 
+        // TODO Do we want to clear the playlists
+
         database.clear();
     }
 
