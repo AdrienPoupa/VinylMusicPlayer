@@ -52,7 +52,6 @@ public class Discography implements MusicServiceEventListener {
         cache = new MemCache();
 
         loadSongs();
-        loadPlaylists();
     }
 
     // TODO This is not a singleton and should not be declared as such
