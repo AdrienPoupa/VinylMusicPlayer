@@ -45,15 +45,16 @@ class MemCache {
     // persistent storage
     private final DB database = new DB();
 
-    @NonNull
-    synchronized Collection<Song> loadSongs() {
+    synchronized void loadSongs() {
+        isStale = true;
+
         Collection<Song> songs = database.loadSongs();
 
         for (Song song : songs) {
             addSong(song, true);
         }
 
-        return songs;
+        isStale = false;
     }
 
     synchronized void addSong(@NonNull final Song song, boolean cacheOnly) {
@@ -160,8 +161,6 @@ class MemCache {
 
         genresByName.clear();
         songsByGenreId.clear();
-
-        // TODO Do we want to clear the playlists
 
         database.clear();
     }

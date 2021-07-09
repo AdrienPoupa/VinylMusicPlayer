@@ -319,8 +319,6 @@ public class Discography implements MusicServiceEventListener {
             removeSongById(cacheSongsId.toArray(new Long[0]));
         }
 
-        // TODO Fetch playlists from media store?
-
         return (getSongCount() - initialSongCount);
     }
 
@@ -403,12 +401,6 @@ public class Discography implements MusicServiceEventListener {
     }
 
     private void loadSongs() {
-        setStale(true);
         cache.loadSongs();
-        setStale(false);
-    }
-
-    private void loadPlaylists() {
-        // TODO
     }
 }
