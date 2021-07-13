@@ -28,6 +28,7 @@ import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -195,6 +196,13 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
 
     @Override
     public void onCreate() {
+        // TODO Debug only
+        final String message = String.format(
+                "MusicService@%s.onCreate",
+                Integer.toHexString(System.identityHashCode(this))
+        );
+        Log.w("extended-sleep", message);
+
         super.onCreate();
         final PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, getClass().getName());
@@ -265,6 +273,14 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
     @Override
     public int onStartCommand(@Nullable Intent intent, int flags, int startId) {
         if (intent != null) {
+            // TODO Debug only
+            final String message = String.format(
+                    "MusicService@%s.onStartCommand %s",
+                    Integer.toHexString(System.identityHashCode(this)),
+                    intent.getAction()
+            );
+            Log.w("extended-sleep", message);
+
             if (intent.getAction() != null) {
                 restoreQueuesAndPositionIfNecessary();
                 String action = intent.getAction();
@@ -326,11 +342,19 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
             }
         }
 
+        // TODO Should return START_STICKY instead?
         return START_NOT_STICKY;
     }
 
     @Override
     public void onDestroy() {
+        // TODO Debug only
+        final String message = String.format(
+                "MusicService@%s.onDestroy",
+                Integer.toHexString(System.identityHashCode(this))
+        );
+        Log.w("extended-sleep", message);
+
         unregisterReceiver(widgetIntentReceiver);
         unregisterReceiver(updateFavoriteReceiver);
         if (becomingNoisyReceiverRegistered) {
@@ -354,6 +378,15 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
             return super.onBind(intent);
         }
 
+        // TODO Debug only
+        final String message = String.format(
+                "MusicService@%s.onBind returned=@%s",
+                Integer.toHexString(System.identityHashCode(this)),
+                Integer.toHexString(System.identityHashCode(((MusicBinder) musicBind).getService()))
+        );
+        Log.w("extended-sleep", message);
+
+        // TODO Do we need to refresh and return a new MusicBinder object?
         return musicBind;
     }
 
@@ -426,13 +459,13 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
 
     private void releaseResources() {
         playerHandler.removeCallbacksAndMessages(null);
-        if (Build.VERSION.SDK_INT >= 18) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             musicPlayerHandlerThread.quitSafely();
         } else {
             musicPlayerHandlerThread.quit();
         }
         queueSaveHandler.removeCallbacksAndMessages(null);
-        if (Build.VERSION.SDK_INT >= 18) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             queueSaveHandlerThread.quitSafely();
         } else {
             queueSaveHandlerThread.quit();
@@ -1070,7 +1103,17 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
     }
 
     private void sendChangeInternal(final String what) {
+        // TODO Consider switching to LocalBroadcastManager
         sendBroadcast(new Intent(what));
+
+        // TODO For debug only
+        final String message = String.format(
+                "MusicService@%s.sendChangeInternal %s",
+                Integer.toHexString(System.identityHashCode(this)),
+                what
+        );
+        Log.w("extended-sleep", message);
+
         appWidgetBig.notifyChange(this, what);
         appWidgetClassic.notifyChange(this, what);
         appWidgetSmall.notifyChange(this, what);
