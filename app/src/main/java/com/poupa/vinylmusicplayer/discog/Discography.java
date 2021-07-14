@@ -27,6 +27,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -147,6 +148,14 @@ public class Discography implements MusicServiceEventListener {
         synchronized (cache) {
             // Make a copy here, to avoid error while the caller is iterating on the result
             return new ArrayList<>(cache.songsById.values());
+        }
+    }
+
+    @NonNull
+    public Map<Long, Song> getAllSongsById() {
+        synchronized (cache) {
+            // Make a copy here, to avoid error while the caller is iterating on the result
+            return new HashMap<>(cache.songsById);
         }
     }
 

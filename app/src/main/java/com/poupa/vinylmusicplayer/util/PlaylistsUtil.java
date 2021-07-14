@@ -16,6 +16,7 @@ import androidx.annotation.Nullable;
 
 import com.poupa.vinylmusicplayer.R;
 import com.poupa.vinylmusicplayer.helper.M3UWriter;
+import com.poupa.vinylmusicplayer.loader.PlaylistLoader;
 import com.poupa.vinylmusicplayer.model.Playlist;
 import com.poupa.vinylmusicplayer.model.PlaylistSong;
 import com.poupa.vinylmusicplayer.model.Song;
@@ -46,6 +47,8 @@ public class PlaylistsUtil {
     }
 
     public static long createPlaylist(@NonNull final Context context, @Nullable final String name) {
+        // TODO Use StaticPlaylist
+
         long id = -1;
         if (name != null && name.length() > 0) {
             try {
@@ -86,7 +89,8 @@ public class PlaylistsUtil {
     }
 
     public static void deletePlaylists(@NonNull final Context context, @NonNull final ArrayList<Playlist> playlists) {
-        // TODO Use internal DB instead
+        // TODO Use StaticPlaylist
+
         final StringBuilder selection = new StringBuilder();
         selection.append(MediaStore.Audio.Playlists._ID + " IN (");
         for (int i = 0; i < playlists.size(); i++) {
@@ -111,7 +115,8 @@ public class PlaylistsUtil {
     }
 
     public static void addToPlaylist(@NonNull final Context context, @NonNull final List<Song> songs, final long playlistId, final boolean showToastOnFinish) {
-        // TODO Use internal DB instead
+        // TODO Use StaticPlaylist
+
         final int size = songs.size();
         final ContentResolver resolver = context.getContentResolver();
         final String[] projection = new String[]{
@@ -166,6 +171,8 @@ public class PlaylistsUtil {
     }
 
     public static void removeFromPlaylist(@NonNull final Context context, @NonNull final Song song, long playlistId) {
+        // TODO Use StaticPlaylist
+
         Uri uri = MediaStore.Audio.Playlists.Members.getContentUri(
                 "external", playlistId);
         String selection = MediaStore.Audio.Playlists.Members.AUDIO_ID + " =?";
@@ -180,6 +187,8 @@ public class PlaylistsUtil {
     }
 
     public static void removeFromPlaylist(@NonNull final Context context, @NonNull final List<PlaylistSong> songs) {
+        // TODO Use StaticPlaylist
+
         final long playlistId = songs.get(0).playlistId;
         Uri uri = MediaStore.Audio.Playlists.Members.getContentUri(MediaStore.VOLUME_EXTERNAL, playlistId);
         String[] selectionArgs = new String[songs.size()];
@@ -199,6 +208,8 @@ public class PlaylistsUtil {
     }
 
     public static boolean doesPlaylistContain(@NonNull final Context context, final long playlistId, final long songId) {
+        // TODO Use StaticPlaylist
+
         if (playlistId != -1) {
             try {
                 Cursor c = context.getContentResolver().query(
@@ -221,6 +232,8 @@ public class PlaylistsUtil {
     }
 
     public static boolean moveItem(@NonNull final Context context, long playlistId, int from, int to) {
+        // TODO Use StaticPlaylist
+
         boolean res = MediaStore.Audio.Playlists.Members.moveItem(context.getContentResolver(),
                 playlistId, from, to);
         // NOTE: actually for now lets disable this because it messes with the animation (tested on Android 11)
@@ -229,6 +242,8 @@ public class PlaylistsUtil {
     }
 
     public static void renamePlaylist(@NonNull final Context context, final long id, final String newName) {
+        // TODO Use StaticPlaylist
+
         Uri playlistUri = ContentUris.withAppendedId(EXTERNAL_CONTENT_URI, id);
         ContentValues contentValues = new ContentValues();
         contentValues.put(MediaStore.Audio.PlaylistsColumns.NAME, newName);
