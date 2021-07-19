@@ -59,8 +59,9 @@ done
 
 # Merge with white-listed remotes (pull requests etc)
 # Space separated list, each following the 'login/repo/branch' format
-#    Octoton/VinylMusicPlayer/random_album
-alien_branches=""
+alien_branches="
+    Octoton/VinylMusicPlayer/random_album
+"
 
 for alien_branch in ${alien_branches}; do
     user=$(echo "${alien_branch}" | cut -d/ -f1)
