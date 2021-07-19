@@ -60,7 +60,6 @@ class Utils {
 
     static @NonNull
     String getSectionName(@NonNull String name) {
-        // TODO This is too much, can be simplified as: charAt[0].toUpper()
         return MusicUtil.getSectionName(name);
     }
 
