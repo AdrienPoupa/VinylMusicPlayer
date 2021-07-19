@@ -28,6 +28,9 @@ import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.lang.Integer.parseInt;
+
+
 public final class PreferenceUtil {
     // TODO Use string resources for this, avoid duplicating inside UI code
     public static final String GENERAL_THEME = "general_theme";
@@ -117,6 +120,13 @@ public final class PreferenceUtil {
     public static final byte RG_SOURCE_MODE_NONE = 0;
     public static final byte RG_SOURCE_MODE_TRACK = 1;
     public static final byte RG_SOURCE_MODE_ALBUM = 2;
+
+    public static final String AS_ALBUM_SHUFFLING = "album_shuffling";
+    public static final String AS_ALLOW_ALBUM_SHUFFLING = "allow_album_shuffling";
+    public static final String AS_HISTORY_SIZE = "album_shuffling_history_size";
+    public static final String AS_FIRST_SEARCH_CRITERIA = "first_search_criteria";
+    public static final String AS_SECOND_SEARCH_CRITERIA = "second_search_criteria";
+    public static final String AS_THIRD_SEARCH_CRITERIA = "third_search_criteria";
 
     public static final String SAF_SDCARD_URI = "saf_sdcard_uri";
 
@@ -376,7 +386,7 @@ public final class PreferenceUtil {
         final Pattern pattern = Pattern.compile("^([0-9]*?)([dwmy])$");
         final Matcher matcher = pattern.matcher(value);
         if (matcher.find()) {
-            final int count = Integer.parseInt(matcher.group(1));
+            final int count = parseInt(matcher.group(1));
             final String unit = matcher.group(2);
 
             if (count == 0) {return disabledValue;}
@@ -638,6 +648,20 @@ public final class PreferenceUtil {
 
     public boolean maintainSkippedSongsPlaylist() {
         return mPreferences.getBoolean(MAINTAIN_SKIPPED_SONGS_PLAYLIST, false);
+    }
+
+    public final boolean allowRandomAlbum() {
+        return mPreferences.getBoolean(AS_ALLOW_ALBUM_SHUFFLING, false);
+    }
+
+    public final int getNextRandomAlbumHistorySize() {
+        String size = mPreferences.getString(AS_HISTORY_SIZE, "5");
+
+        return parseInt(size);
+    }
+
+    public final String getNextRandomAlbumSearchHistory(@NonNull String key) {
+        return mPreferences.getString(key, "none");
     }
 
     public void setInitializedBlacklist() {

@@ -10,6 +10,7 @@ import androidx.annotation.Nullable;
 import com.poupa.vinylmusicplayer.App;
 import com.poupa.vinylmusicplayer.discog.tagging.TagExtractor;
 import com.poupa.vinylmusicplayer.interfaces.MusicServiceEventListener;
+import com.poupa.vinylmusicplayer.misc.AlbumShuffling.NextRandomAlbum;
 import com.poupa.vinylmusicplayer.model.Album;
 import com.poupa.vinylmusicplayer.model.Artist;
 import com.poupa.vinylmusicplayer.model.Genre;
@@ -226,8 +227,8 @@ public class Discography implements MusicServiceEventListener {
 
     private void addSong(@NonNull Song song, boolean cacheOnly) {
         synchronized (cache) {
-            // Race condition check: If the song has been added -> skip
-            if (cache.songsById.containsKey(song.id)) {
+            // Race condition check: If the song has been added -> skip + never add a random album to discography as it is not a real song
+            if (NextRandomAlbum.IsRandomAlbum(song.id) || cache.songsById.containsKey(song.id)) {
                 return;
             }
 

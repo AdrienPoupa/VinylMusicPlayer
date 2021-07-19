@@ -50,6 +50,8 @@ import com.poupa.vinylmusicplayer.glide.GlideRequest;
 import com.poupa.vinylmusicplayer.glide.VinylGlideExtension;
 import com.poupa.vinylmusicplayer.glide.VinylSimpleTarget;
 import com.poupa.vinylmusicplayer.helper.ShuffleHelper;
+import com.poupa.vinylmusicplayer.misc.AlbumShuffling.NextRandomAlbum;
+import com.poupa.vinylmusicplayer.misc.AlbumShuffling.Search.AutomaticSearch;
 import com.poupa.vinylmusicplayer.model.Playlist;
 import com.poupa.vinylmusicplayer.model.Song;
 import com.poupa.vinylmusicplayer.provider.HistoryStore;
@@ -127,6 +129,7 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
 
     public static final int SHUFFLE_MODE_NONE = 0;
     public static final int SHUFFLE_MODE_SHUFFLE = 1;
+    public static final int SHUFFLE_MODE_SHUFFLE_ALBUM = 2;
 
     public static final int REPEAT_MODE_NONE = 0;
     public static final int REPEAT_MODE_ALL = 1;
@@ -292,6 +295,8 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
                                     int startPosition = new Random().nextInt(playlistSongs.size());
                                     openQueue(playlistSongs, startPosition, true);
                                     setShuffleMode(shuffleMode);
+                                } else if (shuffleMode == SHUFFLE_MODE_SHUFFLE_ALBUM) {
+                                    setShuffleMode(shuffleMode);
                                 } else {
                                     openQueue(playlistSongs, 0, true);
                                 }
@@ -398,6 +403,7 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
             int restoredPositionInTrack = PreferenceManager.getDefaultSharedPreferences(this).getInt(SAVED_POSITION_IN_TRACK, -1);
 
             if (restoredQueue.size() > 0 && restoredQueue.size() == restoredOriginalQueue.size() && restoredPosition != -1) {
+
                 this.originalPlayingQueue = restoredOriginalQueue;
                 this.playingQueue = restoredQueue;
 
@@ -406,6 +412,12 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
                 prepareNext();
 
                 if (restoredPositionInTrack > 0) seek(restoredPositionInTrack);
+
+                // restore history and last random album found if function was activated
+                if (shuffleMode == SHUFFLE_MODE_SHUFFLE_ALBUM) {
+                    playingQueue.add(NextRandomAlbum.getInstance().resetHistories(this));
+                    notifyChange(QUEUE_CHANGED);
+                }
 
                 notHandledMetaChangedForCurrentTrack = true;
                 sendChangeInternal(META_CHANGED);
@@ -719,6 +731,8 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
             } else {
                 setPosition(position);
             }
+
+            automaticRefreshRandomAlbumIfPossible(false);
             notifyChange(QUEUE_CHANGED);
         }
     }
@@ -726,24 +740,29 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
     public void addSong(int position, Song song) {
         playingQueue.add(position, song);
         originalPlayingQueue.add(position, song);
+        automaticRefreshRandomAlbumIfPossible(false);
         notifyChange(QUEUE_CHANGED);
     }
 
     public void addSong(Song song) {
         playingQueue.add(song);
         originalPlayingQueue.add(song);
+        automaticRefreshRandomAlbumIfPossible(false);
         notifyChange(QUEUE_CHANGED);
     }
 
     public void addSongs(int position, List<Song> songs) {
         playingQueue.addAll(position, songs);
         originalPlayingQueue.addAll(position, songs);
+        automaticRefreshRandomAlbumIfPossible(false);
         notifyChange(QUEUE_CHANGED);
     }
 
     public void addSongs(List<Song> songs) {
         playingQueue.addAll(songs);
         originalPlayingQueue.addAll(songs);
+
+        automaticRefreshRandomAlbumIfPossible(false);
         notifyChange(QUEUE_CHANGED);
     }
 
@@ -757,6 +776,7 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
 
         rePosition(position);
 
+        automaticRefreshRandomAlbumIfPossible(false);
         notifyChange(QUEUE_CHANGED);
     }
 
@@ -772,6 +792,7 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
                 originalPlayingQueue.remove(i);
             }
         }
+	automaticRefreshRandomAlbumIfPossible(false);
     }
 
     public void removeSong(@NonNull Song song) {
@@ -815,12 +836,17 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
         } else if (from == currentPosition) {
             position = to;
         }
+
+        automaticRefreshRandomAlbumIfPossible(false);
+
         notifyChange(QUEUE_CHANGED);
     }
 
     public void clearQueue() {
         playingQueue.clear();
         originalPlayingQueue.clear();
+
+        NextRandomAlbum.getInstance().clearSearchHistory();
 
         setPosition(-1);
         notifyChange(QUEUE_CHANGED);
@@ -987,7 +1013,10 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
     public void cycleRepeatMode() {
         switch (getRepeatMode()) {
             case REPEAT_MODE_NONE:
-                setRepeatMode(REPEAT_MODE_ALL);
+                if (getShuffleMode() != SHUFFLE_MODE_SHUFFLE_ALBUM)
+                    setRepeatMode(REPEAT_MODE_ALL);
+                else
+                    Toast.makeText(getApplicationContext(), getResources().getString(R.string.error_random_album_repeat_mode), Toast.LENGTH_LONG).show();;
                 break;
             case REPEAT_MODE_ALL:
                 setRepeatMode(REPEAT_MODE_THIS);
@@ -999,10 +1028,17 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
     }
 
     public void toggleShuffle() {
-        if (getShuffleMode() == SHUFFLE_MODE_NONE) {
-            setShuffleMode(SHUFFLE_MODE_SHUFFLE);
-        } else {
-            setShuffleMode(SHUFFLE_MODE_NONE);
+        switch (getShuffleMode()) {
+            case SHUFFLE_MODE_NONE:
+                setShuffleMode(SHUFFLE_MODE_SHUFFLE);
+                break;
+            case SHUFFLE_MODE_SHUFFLE:
+                setShuffleMode(SHUFFLE_MODE_SHUFFLE_ALBUM);
+                setRepeatMode(REPEAT_MODE_NONE);
+                break;
+            default:
+                setShuffleMode(SHUFFLE_MODE_NONE);
+                break;
         }
     }
 
@@ -1020,21 +1056,85 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
                 ShuffleHelper.makeShuffleList(this.getPlayingQueue(), getPosition());
                 position = 0;
                 break;
-            case SHUFFLE_MODE_NONE:
-                this.shuffleMode = shuffleMode;
-                long currentSongId = getCurrentSong().id;
-                playingQueue = new ArrayList<>(originalPlayingQueue);
-                int newPosition = 0;
-                for (Song song : getPlayingQueue()) {
-                    if (song.id == currentSongId) {
-                        newPosition = getPlayingQueue().indexOf(song);
+            case SHUFFLE_MODE_SHUFFLE_ALBUM:
+                if (this.shuffleMode != shuffleMode) {
+                    this.shuffleMode = shuffleMode;
+                    long currentSongId = getCurrentSong().id;
+                    playingQueue = new ArrayList<>(originalPlayingQueue);
+                    int newPosition = 0;
+                    for (Song song : getPlayingQueue()) {
+                        if (song.id == currentSongId) {
+                            newPosition = getPlayingQueue().indexOf(song);
+                        }
+                    }
+                    position = newPosition;
+
+                    if (PreferenceUtil.getInstance().allowRandomAlbum()) {
+                        automaticRefreshRandomAlbumIfPossible(false); // run automatic random album search
                     }
                 }
-                position = newPosition;
+                // go directly to random song order as random album is not activated in preferences
+                if (PreferenceUtil.getInstance().allowRandomAlbum()) {
+                    break;
+                }
+            case SHUFFLE_MODE_NONE:
+                this.shuffleMode = SHUFFLE_MODE_NONE;
+                // remove last song that do album transition
+                removedRandomAlbum(false);
+                NextRandomAlbum.getInstance().stop();
                 break;
         }
         handleAndSendChangeInternal(SHUFFLE_MODE_CHANGED);
         notifyChange(QUEUE_CHANGED);
+    }
+
+    public void removedRandomAlbum(boolean notify) {
+        int lastSongPosition = playingQueue.size() - 1;
+
+        if (lastSongPosition >= 0) {
+            for (int i = 0; i <= lastSongPosition; i++) {
+                if (NextRandomAlbum.IsRandomAlbum(playingQueue.get(i).id)) {
+                    playingQueue.remove(i--);
+                    lastSongPosition--;
+
+                    if (notify) {
+                        notifyChange(QUEUE_CHANGED);
+                    }
+                }
+            }
+        }
+    }
+
+    public void refreshManuallyNextRandomAlbumIfPossible(boolean notify) {
+        getRandomAlbumIfPossible(notify);
+    }
+
+    private void automaticRefreshRandomAlbumIfPossible(boolean notify) {
+        if (this.playingQueue.size() > 0) {
+            Song lastSong = playingQueue.get(playingQueue.size() - 1);
+            boolean randomAlbumIsActive = NextRandomAlbum.IsRandomAlbum(lastSong.id);
+
+            if (!randomAlbumIsActive || NextRandomAlbum.getInstance().searchHasEnded()) { // forbid more than one automatic search on the same album
+                NextRandomAlbum.getInstance().initSearch(new AutomaticSearch(), true);
+
+                getRandomAlbumIfPossible(notify);
+            }
+        }
+    }
+
+    private void getRandomAlbumIfPossible(boolean notify) {
+        if (shuffleMode == SHUFFLE_MODE_SHUFFLE_ALBUM && this.playingQueue.size() > 0) {
+            removedRandomAlbum(false);
+
+            Song lastSong = playingQueue.get(playingQueue.size() - 1);
+            Song nextAlbum = NextRandomAlbum.getInstance().search(lastSong, this);
+
+            playingQueue.add(nextAlbum);
+
+            if (notify) {
+                notifyChange(QUEUE_CHANGED);
+            }
+        }
     }
 
     public void notifyChange(@NonNull final String what) {

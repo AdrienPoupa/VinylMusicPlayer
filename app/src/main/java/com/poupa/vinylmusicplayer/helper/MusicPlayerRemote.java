@@ -116,6 +116,12 @@ public class MusicPlayerRemote {
         }
     }
 
+    public static void shuffleNextRandomAlbum() {
+        if (musicService != null) {
+            musicService.refreshManuallyNextRandomAlbumIfPossible(true); // run a manual Next Random Album search
+        }
+    }
+
     /**
      * Async
      */
